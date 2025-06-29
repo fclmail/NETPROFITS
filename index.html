@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Flash Loan Arbitrage Profit Viewer</title>
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+  <style>
+    body {
+      background-color: #003300;
+      color: #FFFFFF;
+      font-family: 'Courier New', monospace;
+      padding: 20px;
+    }
+    h1 {
+      color: #00FF00;
+    }
+    input, button {
+      padding: 10px;
+      font-weight: bold;
+      font-size: 1em;
+    }
+    table {
+      width: 100%;
+      margin-top: 20px;
+      border-collapse: collapse;
+      background: #004d00;
+      font-weight: bold;
+    }
+    th, td {
+      border: 1px solid #00FF00;
+      padding: 10px;
+      text-align: left;
+    }
+    th {
+      background-color: #006600;
+    }
+    .highlight {
+      color: #00FF00;
+      font-size: 1.2em;
+    }
+  </style>
+</head>
+<body>
+  <h1>Flash Loan Arbitrage Analyzer 💸</h1>
+  <label>Enter Transaction Hash:</label><br><br>
+  <input id="txHash" type="text" placeholder="0x..." size="80" />
+  <button onclick="analyzeTransaction()">Analyze</button>
+
+  <div id="results"></div>
+
+  <script>
+    const POLYGONSCAN_API = "https://api.polygonscan.com/api";
+    const API_KEY = "GPMM5PMEY6U73TFS349FJ5KH1QJU8G8ANY"; // Replace with your Polygonscan API Key
+    const MATIC_PRICE_USD = 0.7; // You can replace with live price later
+
+    async function analyzeTransaction() {
+      const txHash = document.getElementById("txHash").value.trim();
+      if (!txHash.startsWith("0x")) return alert("Invalid tx hash!");
+
+      const results = document.getElementById("results");
+      results.innerHTML = "<p>⏳ Fetching data...</p>";
+
+      try {
+        const receiptRes = await fetch(`${POLYGONSCAN_API}?module=proxy&action=eth_getTransactionReceipt&txhash=${txHash}&apikey=${API_KEY}`);
+        const txRes = await fetch(`${POLYGONSCAN_API}?module=proxy&action=eth_getTransactionByHash&txhash=${txHash}&apikey=${API_KEY}`);
+        const tokenTxRes = await fetch(`${POLYGONSCAN_API}?module=account&action=tokentx&txhash=${txHash}&apikey=${API_KEY}`);
+
+        const receipt = (await receiptRes.json()).result;
+        const tx = (await txRes.json()).result;
+        const tokenTxs = (await tokenTxRes.json()).result;
+
+        const gasUsed = parseInt(receipt.gasUsed, 16);
+        const gasPrice = parseInt(tx.gasPrice, 16);
+        const gasCostMATIC = (gasUsed * gasPrice) / 1e18;
+        const gasCostUSD = gasCostMATIC * MATIC_PRICE_USD;
+
+        let tokensIn = [], tokensOut = [];
+        tokenTxs.forEach(t => {
+          if (t.to.toLowerCase() === tx.from.toLowerCase()) {
+            tokensOut.push(`${(t.value / 10 ** t.tokenDecimal).toFixed(4)} ${t.tokenSymbol}`);
+          } else {
+            tokensIn.push(`${(t.value / 10 ** t.tokenDecimal).toFixed(4)} ${t.tokenSymbol}`);
+          }
+        });
+
+        const netProfitText = tokensIn.length && tokensOut.length
+          ? `💰 Net Change: <span class='highlight'>+ ${tokensIn.join(", ")} - ${tokensOut.join(", ")}</span>`
+          : "💼 Token movement not clearly detectable.";
+
+        results.innerHTML = `
+          <table>
+            <tr><th colspan="2">⛽ Gas Details</th></tr>
+            <tr><td>Gas Used</td><td>${gasUsed}</td></tr>
+            <tr><td>Gas Price</td><td>${(gasPrice / 1e9).toFixed(2)} Gwei</td></tr>
+            <tr><td>Gas Fee (MATIC)</td><td>${gasCostMATIC.toFixed(6)} MATIC</td></tr>
+            <tr><td>Gas Fee (USD)</td><td>$${gasCostUSD.toFixed(4)}</td></tr>
+
+            <tr><th colspan="2">🔁 Token Transfers</th></tr>
+            <tr><td>Tokens Sent</td><td>${tokensOut.join("<br>") || "N/A"}</td></tr>
+            <tr><td>Tokens Received</td><td>${tokensIn.join("<br>") || "N/A"}</td></tr>
+
+            <tr><th colspan="2">📈 Estimated Net Profit</th></tr>
+            <tr><td colspan="2">${netProfitText}</td></tr>
+          </table>
+        `;
+      } catch (err) {
+        console.error(err);
+        results.innerHTML = "<p style='color:red;'>❌ Error fetching data. Try again.</p>";
+      }
+    }
+  </script>
+</body>
+</html>
+
