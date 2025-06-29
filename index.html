@@ -66,14 +66,20 @@
         const txRes = await fetch(`${POLYGONSCAN_API}?module=proxy&action=eth_getTransactionByHash&txhash=${txHash}&apikey=${API_KEY}`);
         const tokenTxRes = await fetch(`${POLYGONSCAN_API}?module=account&action=tokentx&txhash=${txHash}&apikey=${API_KEY}`);
         
-        // Log API responses
-        console.log("Transaction Receipt Response:", await receiptRes.json());
-        console.log("Transaction Response:", await txRes.json());
-        console.log("Token Transfer Response:", await tokenTxRes.json());
+        // Convert the response to JSON once
+        const receiptJson = await receiptRes.json();
+        const txJson = await txRes.json();
+        const tokenTxJson = await tokenTxRes.json();
 
-        const receipt = (await receiptRes.json()).result;
-        const tx = (await txRes.json()).result;
-        const tokenTxs = (await tokenTxRes.json()).result;
+        // Log the entire response objects
+        console.log("Transaction Receipt Response:", receiptJson);
+        console.log("Transaction Response:", txJson);
+        console.log("Token Transfer Response:", tokenTxJson);
+
+        // Handle receipt and transaction
+        const receipt = receiptJson.result;
+        const tx = txJson.result;
+        const tokenTxs = tokenTxJson.result;
 
         const gasUsed = parseInt(receipt.gasUsed, 16);
         const gasPrice = parseInt(tx.gasPrice, 16);
