@@ -79,7 +79,7 @@
         // Handle receipt and transaction
         const receipt = receiptJson.result;
         const tx = txJson.result;
-        const tokenTxs = tokenTxJson.result;
+        const tokenTxs = Array.isArray(tokenTxJson.result) ? tokenTxJson.result : [];
 
         const gasUsed = parseInt(receipt.gasUsed, 16);
         const gasPrice = parseInt(tx.gasPrice, 16);
@@ -87,13 +87,15 @@
         const gasCostUSD = gasCostMATIC * MATIC_PRICE_USD;
 
         let tokensIn = [], tokensOut = [];
-        tokenTxs.forEach(t => {
-          if (t.to.toLowerCase() === tx.from.toLowerCase()) {
-            tokensOut.push(`${(t.value / 10 ** t.tokenDecimal).toFixed(4)} ${t.tokenSymbol}`);
-          } else {
-            tokensIn.push(`${(t.value / 10 ** t.tokenDecimal).toFixed(4)} ${t.tokenSymbol}`);
-          }
-        });
+        if (tokenTxs.length > 0) {
+          tokenTxs.forEach(t => {
+            if (t.to.toLowerCase() === tx.from.toLowerCase()) {
+              tokensOut.push(`${(t.value / 10 ** t.tokenDecimal).toFixed(4)} ${t.tokenSymbol}`);
+            } else {
+              tokensIn.push(`${(t.value / 10 ** t.tokenDecimal).toFixed(4)} ${t.tokenSymbol}`);
+            }
+          });
+        }
 
         const netProfitText = tokensIn.length && tokensOut.length
           ? `💰 Net Change: <span class='highlight'>+ ${tokensIn.join(", ")} - ${tokensOut.join(", ")}</span>`
@@ -123,4 +125,5 @@
   </script>
 </body>
 </html>
+
 
