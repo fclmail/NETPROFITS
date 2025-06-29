@@ -50,7 +50,7 @@
 
   <script>
     const POLYGONSCAN_API = "https://api.polygonscan.com/api";
-    const API_KEY = "GPMM5PMEY6U73TFS349FJ5KH1QJU8G8ANY"; // Replace with your Polygonscan API Key
+    const API_KEY = "GPMM5PMEY6U73TFS349FJ5KH1QJU8G8ANY"; // Your provided Polygonscan API Key
     const MATIC_PRICE_USD = 0.7; // You can replace with live price later
 
     async function analyzeTransaction() {
@@ -61,9 +61,15 @@
       results.innerHTML = "<p>⏳ Fetching data...</p>";
 
       try {
+        // Fetch the transaction receipt
         const receiptRes = await fetch(`${POLYGONSCAN_API}?module=proxy&action=eth_getTransactionReceipt&txhash=${txHash}&apikey=${API_KEY}`);
         const txRes = await fetch(`${POLYGONSCAN_API}?module=proxy&action=eth_getTransactionByHash&txhash=${txHash}&apikey=${API_KEY}`);
         const tokenTxRes = await fetch(`${POLYGONSCAN_API}?module=account&action=tokentx&txhash=${txHash}&apikey=${API_KEY}`);
+        
+        // Log API responses
+        console.log("Transaction Receipt Response:", await receiptRes.json());
+        console.log("Transaction Response:", await txRes.json());
+        console.log("Token Transfer Response:", await tokenTxRes.json());
 
         const receipt = (await receiptRes.json()).result;
         const tx = (await txRes.json()).result;
@@ -104,8 +110,8 @@
           </table>
         `;
       } catch (err) {
-        console.error(err);
-        results.innerHTML = "<p style='color:red;'>❌ Error fetching data. Try again.</p>";
+        console.error("Fetch error:", err);
+        results.innerHTML = `<p style='color:red;'>❌ Error: ${err.message}</p>`;
       }
     }
   </script>
